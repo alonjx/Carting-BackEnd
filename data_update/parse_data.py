@@ -26,9 +26,7 @@ def parse_data(xml_path, is_shufersal):
                         item.find('ItemPrice').text, item.find('UnitOfMeasurePrice').text, item.find('AllowDiscount').text,
                         item.find('ItemStatus').text))
 
-    # TODO: change this print and save the data in DB
-    for dat in data:
-        print(dat.item_name)
+    return data
 
 
 def find_xml_path(branch_number):
