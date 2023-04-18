@@ -14,8 +14,9 @@ if __name__ == '__main__':
     os.mkdir('compressed')
     os.mkdir('data')
     get_data_shufersal()
-    # get_data_rami_levi()
+    get_data_rami_levi()
     shufersal_products = parse_data(find_xml_path("413"), is_shufersal=True)
-    # rami_levi_products = parse_data(find_xml_path("39"), is_shufersal=False)
-    sql_update.update_sql_table(shufersal_products, None)
+    rami_levi_products = parse_data(find_xml_path("39"), is_shufersal=False)
+    sql_update.update_sql_table(shufersal_products, "shufersal")
+    sql_update.update_sql_table(rami_levi_products, "rami_levi")
 
