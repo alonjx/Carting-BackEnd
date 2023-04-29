@@ -1,0 +1,68 @@
+{
+	"info": {
+		"_postman_id": "4790701e-3efa-40bb-9237-a72f96825d52",
+		"name": "Carting postman",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "20862810"
+	},
+	"item": [
+		{
+			"name": "Get product by id",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/product/serial?chain_id=1&product_id=18000766413",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"product",
+						"serial"
+					],
+					"query": [
+						{
+							"key": "chain_id",
+							"value": "1"
+						},
+						{
+							"key": "product_id",
+							"value": "18000766413"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get similar products",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/product/name?chain_id=1&name=עגבניה",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"product",
+						"name"
+					],
+					"query": [
+						{
+							"key": "chain_id",
+							"value": "1"
+						},
+						{
+							"key": "name",
+							"value": "עגבניה"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
