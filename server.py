@@ -63,7 +63,7 @@ def get_similar_items():
     for key in sorted_dict:
         if i == 3:
             break
-        my_cursor.execute(f'select item_price from product where item_name="{key}"')
+        my_cursor.execute(f"select item_price from product where item_name='{key}'")
         fetched_data = my_cursor.fetchall().copy()
         res[key] = fetched_data[0][0]
         i += 1
