@@ -1,12 +1,11 @@
-import re
-
 import mysql.connector
 from flask import Flask, request
 import json
 import jellyfish
-
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 host = "localhost"
 port = 8080
 chains_id = {'1': 'rami_levi',
@@ -23,21 +22,23 @@ my_cursor = mydb.cursor()
 
 product_name = ""
 
+
 @app.route("/product/serial")
 def get_product_by_id():
     query_parameters = request.args
     chain_name = chains_id[query_parameters["chain_id"]]
     product_serial_number = query_parameters["product_id"]
     # TODO: maybe log?
-    # print(f'select item_price, chain_name from product where item_code = "{chain_name} " '
-    #                   f'AND chain_name != "{product_serial_number}"')
-    my_cursor.execute(f'select item_price, chain_name from product where item_code = "{product_serial_number}" '
+    # print(f'select item_price, item_name, chain_name from product where item_code LIKE "%{product_serial_number}%"'
+    #                   f'AND chain_name != "{chain_name}"')
+    my_cursor.execute(f'select item_price, item_name, chain_name from product where item_code LIKE "%{product_serial_number}%"'
                       f'AND chain_name != "{chain_name}"')
     json_dict_result = {}
     for item in my_cursor.fetchall():
         res = {
             "item_price": item[0],
-            "chain": item[1]
+            "product_name": item[1],
+            "chain": item[2]
         }
         json_dict_result.update(res)
     json_data = json.dumps(json_dict_result)
