@@ -1,3 +1,5 @@
+import logging
+
 import mysql.connector
 from flask import Flask, request, make_response
 import json
@@ -37,10 +39,10 @@ def get_product_by_id():
     chain_name = chains_id[query_parameters["chain_id"]]
     product_serial_number = query_parameters["product_id"]
     # TODO: maybe log?
-    # print(f'select item_price, item_name, chain_name from product where item_code LIKE "%{product_serial_number}%"'
-    #                   f'AND chain_name != "{chain_name}"')
+    logging.info(f' going to execute query: select item_price, item_name, chain_name from product where item_code '
+                 f'LIKE "%{product_serial_number}%" AND chain_name != "{chain_name}"')
     my_cursor.execute(
-        f'select item_price, item_name, chain_name from product where item_code LIKE "%{product_serial_number}%"'
+        f'select item_price, item_name, chain_name from product where item_code LIKE "%{product_serial_number}"'
         f'AND chain_name != "{chain_name}"')
     json_dict_result = {}
     for item in my_cursor.fetchall():
@@ -60,26 +62,31 @@ def get_similar_items():
     query_parameters = request.args
     product_name = query_parameters["name"]
     chain_id = query_parameters["chain_id"]
-    my_cursor.execute(f'select * from product where chain_name != "{chains_id[chain_id]}"')
-    fetched_data = my_cursor.fetchall().copy()
-    product_dic = {}
-    for row in fetched_data:
-        if jellyfish.jaro_similarity(row[3], product_name) > 0.75:
-            product_dic[row[3]] = jellyfish.jaro_similarity(row[3], product_name)
-
-    sorted_dict = dict(sorted(product_dic.items(), key=lambda x: x[1], reverse=True))
-    res = {}
-    i = 0
-    for key in sorted_dict:
-        if i == 3:
-            break
-        my_cursor.execute(f"select item_price from product where item_name='{key}'")
+    try:
+        logging.info(f'going to execute: select * from product where chain_name != "{chains_id[chain_id]}"')
+        my_cursor.execute(f'select * from product where chain_name != "{chains_id[chain_id]}"')
         fetched_data = my_cursor.fetchall().copy()
-        res[key] = fetched_data[0][0]
-        i += 1
-    print(res)
+        product_dic = {}
+        for row in fetched_data:
+            if jellyfish.jaro_similarity(row[3], product_name) > 0.75:
+                product_dic[row[3]] = jellyfish.jaro_similarity(row[3], product_name)
+        sorted_dict = dict(sorted(product_dic.items(), key=lambda x: x[1], reverse=True))
+        res = {}
+        i = 0
+        for key in sorted_dict or []:
+            if i == 3:
+                break
+            my_cursor.execute(f"select item_price from product where item_name='{key}'")
+            fetched_data = my_cursor.fetchall().copy()
+            res[key] = fetched_data[0][0]
+            i += 1
+            logging.info(f'returning: {res}')
+            return json.dumps(res)
+    except Exception as e:
+        logging.error(f'error in query: select * from product where chain_name != "{chains_id[chain_id]}"')
+        logging.error(e)
+        return None, 501
 
-    return json.dumps(res)
     # if " " not in product_name:
     #     for row in fetched_data:
     #         tokens = word_tokenize(row[3])
