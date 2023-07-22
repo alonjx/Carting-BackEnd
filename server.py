@@ -16,7 +16,7 @@ chains_id = {'1': 'rami_levi',
 mydb = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="2nik",
+    password="123456",
     database="Carting_DB",
     port=3306
 )
