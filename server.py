@@ -1,5 +1,5 @@
 import mysql.connector
-from flask import Flask, request
+from flask import Flask, request, make_response
 import json
 import jellyfish
 from flask_cors import CORS
@@ -23,6 +23,14 @@ my_cursor = mydb.cursor()
 product_name = ""
 
 
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        res = make_response()
+        res.headers['X-Content-Type-Options'] = '*'
+        return res
+
+
 @app.route("/product/serial")
 def get_product_by_id():
     query_parameters = request.args
@@ -31,8 +39,9 @@ def get_product_by_id():
     # TODO: maybe log?
     # print(f'select item_price, item_name, chain_name from product where item_code LIKE "%{product_serial_number}%"'
     #                   f'AND chain_name != "{chain_name}"')
-    my_cursor.execute(f'select item_price, item_name, chain_name from product where item_code LIKE "%{product_serial_number}%"'
-                      f'AND chain_name != "{chain_name}"')
+    my_cursor.execute(
+        f'select item_price, item_name, chain_name from product where item_code LIKE "%{product_serial_number}%"'
+        f'AND chain_name != "{chain_name}"')
     json_dict_result = {}
     for item in my_cursor.fetchall():
         res = {
