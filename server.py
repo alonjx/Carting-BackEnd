@@ -64,28 +64,32 @@ def get_similar_items():
     chain_id = query_parameters["chain_id"]
     try:
         logging.info(f'going to execute: select * from product where chain_name != "{chains_id[chain_id]}"')
-        my_cursor.execute(f'select * from product where chain_name != "{chains_id[chain_id]}"')
+        my_cursor.execute(f'select item_name from product where chain_name != "{chains_id[chain_id]}"')
         fetched_data = my_cursor.fetchall().copy()
         product_dic = {}
         for row in fetched_data:
-            if jellyfish.jaro_similarity(row[3], product_name) > 0.75:
-                product_dic[row[3]] = jellyfish.jaro_similarity(row[3], product_name)
+            if jellyfish.jaro_similarity(row[0], product_name) > 0.75:
+                product_dic[row[0]] = jellyfish.jaro_similarity(row[0], product_name)
         sorted_dict = dict(sorted(product_dic.items(), key=lambda x: x[1], reverse=True))
-        res = {}
+        res = []
         i = 0
-        for key in sorted_dict or []:
+        for key in sorted_dict:
+            temp_dict = {}
             if i == 3:
                 break
-            my_cursor.execute(f"select item_price from product where item_name='{key}'")
+            my_cursor.execute(f"select item_price, item_code from product where item_name='{key}'")
             fetched_data = my_cursor.fetchall().copy()
-            res[key] = fetched_data[0][0]
+            temp_dict['item_name'] = key
+            temp_dict['item_price'] = fetched_data[0][0]
+            temp_dict['item_code'] = fetched_data[0][1]
+            res.append(temp_dict)
             i += 1
             logging.info(f'returning: {res}')
-            return json.dumps(res)
+        return json.dumps(res)
     except Exception as e:
         logging.error(f'error in query: select * from product where chain_name != "{chains_id[chain_id]}"')
         logging.error(e)
-        return None, 501
+        return "", 501
 
     # if " " not in product_name:
     #     for row in fetched_data:
