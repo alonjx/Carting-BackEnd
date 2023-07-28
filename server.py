@@ -1,6 +1,6 @@
 import logging
 from functools import wraps
-
+import openai
 import mysql.connector
 from flask import Flask, request, make_response
 import json
@@ -15,13 +15,15 @@ chains_id = {'1': 'rami_levi',
              '2': 'shufersal'}
 
 product_name = ""
+openai.api_key = r'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'
+
 
 # Function to create a database connection and cursor
 def get_database_connection():
     db_config = {
         'host': 'localhost',
         'user': 'root',
-        'password': '123456',
+        'password': '2nik',
         'database': 'Carting_DB',
         'port': 3306
     }
@@ -30,6 +32,7 @@ def get_database_connection():
     cursor = connection.cursor()
 
     return connection, cursor
+
 
 # Decorator to handle the database connection and cursor automatically
 def with_cursor(f):
@@ -46,10 +49,9 @@ def with_cursor(f):
         finally:
             cursor.close()
             connection.close()
-
         return result
-
     return wrapper
+
 
 @app.before_request
 def handle_preflight():
@@ -57,6 +59,7 @@ def handle_preflight():
         res = make_response()
         res.headers['X-Content-Type-Options'] = '*'
         return res
+
 
 @app.route("/product/serial")
 @with_cursor
@@ -92,54 +95,53 @@ def get_similar_items(cursor):
     query_parameters = request.args
     product_name = query_parameters["name"]
     chain_id = query_parameters["chain_id"]
-
     try:
         logging.info(f'going to execute: select * from product where chain_name != "{chains_id[chain_id]}"')
         cursor.execute(f'select item_name from product where chain_name != "{chains_id[chain_id]}"')
         fetched_data = cursor.fetchall().copy()
         product_dic = {}
         for row in fetched_data:
-            if jellyfish.jaro_similarity(row[0], product_name) > 0.75:
-                product_dic[row[0]] = jellyfish.jaro_similarity(row[0], product_name)
-        sorted_dict = dict(sorted(product_dic.items(), key=lambda x: x[1], reverse=True))
-        res = []
-        i = 0
+            product_dic[row[0]] = jellyfish.jaro_similarity(row[0], product_name)
+        sorted_dict = dict(sorted(product_dic.items(), key=lambda x: x[1], reverse=True)[:10])
+        f = open('question.txt', 'r', encoding='utf-8')
+        message = f.read()
+        message = message.replace('<<>>', product_name)
         for key in sorted_dict:
+            message += f'\n{key}'
+        logging.info(message)
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{'role': 'system', 'content': 'You are a helpful assistant.'},
+                      {'role': 'user', 'content': message}]
+        )
+        generated_text = response.choices[0].message.content
+        dict_text = json.loads(cut_string_between_brackets(generated_text))
+        res = []
+        for key in dict_text:
             temp_dict = {}
-            if i == 3:
-                break
-            cursor.execute(f"select item_price, item_code from product where item_name='{key}'")
+            logging.info(f"select item_price, item_code from product where item_name='{dict_text[key]}'")
+            cursor.execute(f"select item_price, item_code from product where item_name='{dict_text[key]}'")
             fetched_data = cursor.fetchall().copy()
-            temp_dict['item_name'] = key
+            temp_dict['item_name'] = dict_text[key]
             temp_dict['item_price'] = fetched_data[0][0]
             temp_dict['item_code'] = fetched_data[0][1]
             res.append(temp_dict)
-            i += 1
-            logging.info(f'returning: {res}')
-
         return json.dumps(res)
     except Exception as e:
         logging.error(f'error in query: select * from product where chain_name != "{chains_id[chain_id]}"')
         logging.error(e)
         return "", 501
 
-    # if " " not in product_name:
-    #     for row in fetched_data:
-    #         tokens = word_tokenize(row[3])
-    #         if product_name in tokens:
-    #             print(tokens)
-    #
-    # else:
-    #     test_dic = {}
-    #     for row in fetched_data:
-    #         if jellyfish.jaro_similarity(row[3], product_name) > 0.75:
-    #             print(jellyfish.jaro_similarity(row[3], product_name), "->", row[3])
-    #             test_dic[row[3]] = jellyfish.jaro_similarity(row[3], product_name)
-    #
-    #     sorted_dict = dict(sorted(test_dic.items(), key=lambda x: x[1], reverse=True))
-    #     for key in sorted_dict:
-    #         print(key, "->", sorted_dict[key])
-    #
+
+def cut_string_between_brackets(input_string):
+    start_index = input_string.find('{')
+    end_index = input_string.rfind('}')
+
+    if start_index != -1 and end_index != -1:
+        cut_string = input_string[start_index:end_index + 1]
+        return cut_string
+    else:
+        return None
 
 
 if __name__ == '__main__':

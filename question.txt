@@ -1,0 +1,6 @@
+מה הם ה3 מוצרים שיכולים להחליף <<>> מהרשימה הבאה? תחזיר לי בפורמט הבאת בלי מלל:
+{
+	"first option":"<first option>",
+	"second_option":"<second option>",
+	"third_option":"<third_option>"
+}

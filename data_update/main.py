@@ -6,8 +6,7 @@ from download_data import get_data_shufersal, get_data_rami_levi
 from parse_data import parse_data, find_xml_path
 
 
-
-if __name__ == '__main__':
+def main():
     if os.path.exists('compressed'):
         shutil.rmtree('data')
         shutil.rmtree('compressed')
@@ -20,3 +19,6 @@ if __name__ == '__main__':
     sql_update.update_sql_table(shufersal_products, "shufersal")
     sql_update.update_sql_table(rami_levi_products, "rami_levi")
 
+
+if __name__ == '__main__':
+    main()
