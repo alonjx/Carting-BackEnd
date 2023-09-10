@@ -8,7 +8,7 @@ def update_sql_table(products, chain_name):
     mydb = mysql.connector.connect(
         host="localhost",
         user="root",
-        password="2nik",
+        password="1234",
         database="Carting_DB",
         port=3306
     )

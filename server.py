@@ -2,6 +2,7 @@ import logging
 from functools import wraps
 import openai
 import mysql.connector
+import requests
 from flask import Flask, request, make_response
 import json
 import jellyfish
@@ -27,7 +28,7 @@ def get_database_connection():
     db_config = {
         'host': 'localhost',
         'user': 'root',
-        'password': '123456',
+        'password': '1234',
         'database': 'Carting_DB',
         'port': 3306
     }
@@ -104,6 +105,16 @@ def api_product_by_name():
         logging.error(e)
         return "", 501
 
+def is_in_stock(barcode):
+    x = {"q": str(barcode), "aggs": 1, "store": "331"}
+    url = 'https://www.rami-levy.co.il/api/catalog'
+    response = requests.post(url, data=x)
+    res = response.text
+    if res:
+        res = json.loads(res)
+        return len(res["data"]) > 0
+    else:
+        return False
 
 def cut_string_between_brackets(input_string):
     start_index = input_string.find('{')
@@ -130,10 +141,18 @@ def get_similar_items(product_name, chain_id, cursor):
     for row in fetched_data:
         product_dic[row[0]] = jellyfish.jaro_similarity(row[0], product_name)
     sorted_dict = dict(sorted(product_dic.items(), key=lambda x: x[1], reverse=True)[:10])
+
+    d = {}
+    for i, v in sorted_dict.items():
+        cursor.execute(f"select item_code from product where item_name='{i}'")
+        fetched_data = cursor.fetchall().copy()
+        if is_in_stock(fetched_data[0][0]):
+            d[i] = v
+
     f = open('question.txt', 'r', encoding='utf-8')
     message = f.read()
     message = message.replace('<<>>', product_name)
-    for key in sorted_dict:
+    for key in d:
         message += f'\n{key}'
     response = openai.ChatCompletion.create(
         model="gpt-4",
@@ -141,6 +160,7 @@ def get_similar_items(product_name, chain_id, cursor):
                   {'role': 'user', 'content': message}]
     )
     generated_text = response.choices[0].message.content
+    print(generated_text)
     dict_text = json.loads(cut_string_between_brackets(generated_text))
     res = []
     for key in dict_text:
